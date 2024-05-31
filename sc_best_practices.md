@@ -4,7 +4,6 @@
 
 ### 2. Single-cell RNA sequencing
 
-
 Bulk RNA-Seq results in cell-averaged expression profiles, which are generally easier to analyze, but also hide some of the complexity such as cell expression profile heterogeneity, which may help answer the question of interest. Some drugs or perturbations may affect only specific cell types or interactions between cell types.
 
 There are two major approaches to transcript quantification: full-length and tag-based. Full-length protocols try to cover the whole transcript uniformly with sequencing reads, whereas tag-based protocols only capture the 5’ or 3’ ends. 
@@ -65,7 +64,12 @@ Key takeaways:
 The **shifted logarithm** works beneficial for stabilizing variance for subsequent dimensionality reduction and identification of differentially expressed genes. **Scran** was extensively tested and used for batch correction tasks and **analytic Pearson residuals** are well suited for selecting biologically variable genes and identification of rare cell types.
 
 ### 8. Feature selection
+
+Usually, the scRNA-seq experiment and resulting dataset focuses on one specific tissue and hence, only a small fraction of genes is informative and biologically variable. Traditional approaches and pipelines either compute the coefficient of variation (highly variable genes) or the average expression level (highly expressed genes) of all genes to obtain 500-2000 selected genes and use these features for their downstream analysis steps. However, these methods are highly sensitive to the normalization technique used before.
+
 ### 9. Dimensionality Reduction
+
+ing et al. compared in an independent comparison the stability, accuracy and computing cost of 10 different dimensionality reduction methods [Xiang et al., 2021]. They propose to use t-distributed stochastic neighbor embedding (t-SNE) as it yielded the best overall performance. Uniform manifold approximation and projection (UMAP) showed the highest stability and separates best the original cell populations.
 
 ## Identifying cellular structure
 
