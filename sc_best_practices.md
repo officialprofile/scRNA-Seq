@@ -69,7 +69,7 @@ Usually, the scRNA-seq experiment and resulting dataset focuses on one specific 
 
 ### 9. Dimensionality Reduction
 
-ing et al. compared in an independent comparison the stability, accuracy and computing cost of 10 different dimensionality reduction methods [Xiang et al., 2021]. They propose to use t-distributed stochastic neighbor embedding (t-SNE) as it yielded the best overall performance. Uniform manifold approximation and projection (UMAP) showed the highest stability and separates best the original cell populations.
+Xiang et al. compared in an independent comparison the stability, accuracy and computing cost of 10 different dimensionality reduction methods [Xiang et al., 2021]. They propose to use t-distributed stochastic neighbor embedding (t-SNE) as it yielded the best overall performance. Uniform manifold approximation and projection (UMAP) showed the highest stability and separates best the original cell populations.
 
 ## Identifying cellular structure
 
