@@ -212,3 +212,35 @@ All in one command:
 ```bash
 csvtk join -H -t <(seqkit fx2tab 1.fa) <(seqkit fx2tab 2.fa) | sed 's/\t\t//' | seqkit tab2fx
 ```
+
+
+Most genome browsers draw linear tracks that represent the forward strand of the genome from its 5’ (left) towards the 3’ (right) direction. 
+
+Glyphs are a visual representation of some genomic features:
+ - Horizontal intervals: directions, genes, alignments
+ - Values over intervals: coverages, probabilities
+ - Attributes at locations: mutations, deletions, junctions
+
+An ontology is a controlled vocabulary of terms or concepts and a restricted set of relationships between those terms.
+ - Where does the product exhibit its effect? -> Cellular Component (CC)
+ - How does it work? -> Molecular Function (MF)
+ - What is the purpose of the gene product? –> Biological Process (BP)
+
+In the most common interpretation, functional analysis means interpreting data in the con- text of all known information gathered up present time.
+
+ORA analysis does not account for the magnitude of expression levels. The gene is either in the list or not.
+
+Gene set enrichment analysis” refers to the process of discovering the common characteristics potentially present in a list of genes. When these characteristics are GO terms, the process is called “functional enrichment
+
+Reproducibility is not a binary classification: reproducible vs irreproducible. Reproducibility is a scale. Reproducibility is not a measure of scientific validity. It is a measure of transparency.
+
+Paired-end sequencing is more expensive than single end sequencing but not radically so (perhaps 20% more).
+
+We recommend that genomic variation and genome assembly analyses use paired-end sequencing as much as possible. On the downside, paired-end sequencing measures the same fragment twice, hence at the same genomic coverage, it will use half as many unique fragments. For analysis methods that use sequencing for quantification such as RNA-Seq and ChIP-Seq, this may be a disadvantage.
+
+High-throughput sequencing data broadly fall into two categories:
+• Short reads (300 bp or smaller).
+• Long reads (>350 bp to several kilobases).
+What goes into a high-throughput sequencing experiment may be familiar to many wet-lab scientists.
+
+Do NOT use spaces or the following characters (? ( ) [ ] / \ = + < > : ; " ' , * ˆ | & .) in sample identifiers. These characters can cause problems with Illumina (and/or other technology) data pre-processing software and should be avoided.
