@@ -74,6 +74,23 @@ Xiang et al. compared in an independent comparison the stability, accuracy and c
 ## Identifying cellular structure
 
 ### 10. Clustering
+
+In scRNA-seq data analysis, we describe cellular structure in our dataset with finding cell identities that relate to known cell states or cell cycle stages. This process is usually called cell identity annotation. For this purpose, we structure cells into clusters to infer the identity of similar cells. The Leiden algorithm is as an improved version of the Louvain algorithm which outperformed other clustering methods for single-cell RNA-seq data analysis. The Leiden module has a resolution parameter which allows to determine the scale of the partition cluster and therefore the coarseness of the clustering. A higher resolution parameter leads to more clusters.
+
+```
+sc.tl.leiden(adata, key_added="leiden_res0_25", resolution=0.25)
+sc.tl.leiden(adata, key_added="leiden_res0_5", resolution=0.5)
+sc.tl.leiden(adata, key_added="leiden_res1", resolution=1.0)
+```
+
+```
+sc.pl.umap(
+    adata,
+    color=["leiden_res0_25", "leiden_res0_5", "leiden_res1"],
+    legend_loc="on data",
+)
+```
+
 ### 11. Annotation
 ### 12. Data integration
 
