@@ -244,3 +244,315 @@ High-throughput sequencing data broadly fall into two categories:
 What goes into a high-throughput sequencing experiment may be familiar to many wet-lab scientists.
 
 Do NOT use spaces or the following characters (? ( ) [ ] / \ = + < > : ; " ' , * ˆ | & .) in sample identifiers. These characters can cause problems with Illumina (and/or other technology) data pre-processing software and should be avoided.
+
+The simple definition of **coverage** is
+
+`C = number of sequenced bases / total genome size`
+
+The only slightly confounding factor is that the number of sequenced bases come in units of “read lengths” rather than one base at a time.
+
+Typically the coverage is expressed with the x symbol. For example, 10x indicates that on average, each base of the genome will be covered by 10 measurements.
+
+For a sequencing instrument that produces variable reads lengths we have:
+
+`C = SUM(Li) / G`
+
+Where the sum goes over N the read count:
+
+`Li = length of read i
+G = size of the genome`
+
+For an instrument with fixed read length L, that produces N reads the formula simplifies to:
+
+`C = N * L / G`
+
+At a coverage C the probability of a base not being sequenced is:
+
+`P = exp(-C)`
+
+**Example**
+How many bases will not be sequenced when we cover a 20KB virus at 10x coverage.
+
+`P = exp(-10)`
+
+From command line:
+```
+python -c "import math; print (math.exp(-10))"
+```
+Prints: 4.53999297625e-05
+
+To figure out how many bases will not be sequenced, we need to multiply this result by the genome length:
+```
+python -c "import math; print (math.exp(-10) * 20000)"
+```
+Prints: 0.90799859525
+
+So at 10x coverage, we will miss about one base. When we cover the human genome at the same coverage:
+```
+python -c "import math; print (math.exp(-10) * 3E9)"
+```
+136199.789287
+
+We will miss 136,199 bases. Note, though, that these gaps will be theoretically dispersed across the entire genome.
+
+**FastQC** generates its reports by evaluating a small subset of the data and extrapolating those findings to the entirety of the dataset. Many of the metrics are only computed on the first 200,000 measurements then are being tracked through the rest of the data.
+
+When FastQC runs, it generates “stoplight” icons for each analysis having “pass,” “warning,” and “error” symbols. Most of the time, these symbols are not meaningful. They were developed for only a particular class of samples and library preparation methods and just for certain types of instruments.
+
+In very simple terms, current sequencing technology begins by breaking up long pieces of DNA into lots more short pieces of DNA. The resultant set of DNA is called a “library” and the short pieces are called “fragments”. Each of the
+fragments in the library are then sequenced individually and in parallel. There are two ways of sequencing a fragment - either just from one end, or from both ends of a fragment. If only one end is sequenced, you get a single read. If your technology can sequence both ends, you get a “pair” of reads for each fragment. These “paired-end” reads are standard practice on Illumina instruments like the GAIIx, HiSeq, and MiSeq.
+
+Now, for single-end reads, you need to make sure your read length (L) is shorter than your fragment length (F) or otherwise the sequence will run out of DNA to read! Typical Illumina fragment libraries would use F ~ 450bp, but this is variable. For paired-end reads, you want to make sure that F is long enough to fit two reads. This means you need F to be at least 2L. As L=100 or 150bp these days for most people, using F~450bp is fine, there is a still a safety margin in the middle.
+
+However, some things have changed in the Illumina ecosystem this year. Firstly, read lengths are now moving to >150bp on the HiSeq (and have already been on the GAIIx) and to >250bp on the MiSeq, with possibilities of longer ones coming soon! This means that the standard library size F~450bp has become too small, and paired-end reads will overlap. Secondly, the new enzymatic Nextera library preparation system produces a wide spread of F sizes compared to the previous TruSeq system. With Nextera, we see F ranging from 100bp to 900bp in the same library. So some reads will overlap, and others won’t. It’s starting to get messy.
+
+The whole point of paired-end reads is to get the benefit of longer reads without actually being able to sequence reads that long. A paired-end read (two reads of length L) from a fragment of length F, is a bit like a single-read of length F, except a bunch of bases in the middle of it are unknown, and how many of them there are is only roughly known (as libraries are only nominally of length F, each read will vary). This gives the reads a more extended context, and this mainly helps in de novo assembly and in aligning more reads unambiguously to a reference genome. However, many software tools will get confused if you give them overlapping pairs, and if we could overlap them and turn them into longer single-end reads, many tools will produce better results, and faster.
+
+Suppose this is the full path.
+```
+FULL=/data/foo/genome.fasta.tar.gz
+echo $FULL
+```
+
+To make it: genome.fasta.tar.gz
+```
+NAME=$(basename ${FULL})
+echo $NAME
+```
+To make it: fasta.tar.gz
+```
+EXT1=${FULL#*.}
+echo $EXT1
+```
+To get only the extension: gz
+```
+EXT2=${FULL##*.}
+```
+
+### How does Awk work?
+
+An awk program works on a line by line basis and for each line of a file it attempts the following:
+```
+awk 'CONDITION { ACTIONS }'
+```
+For each line it awk tries to match the CONDITION, and if that condition matches it performs the ACTIONS. Do note the curly brackets and the quotes. Note that multiple conditions and actions may be present:
+```
+awk 'CONDITION1 { ACTIONS1 } CONDITION2 { ACTIONS2 } CONDITION3 { ACTIONS3 }'
+```
+
+In general, you always want to specify the splitting character when using awk:
+```
+awk -F '\t'
+```
+The flag above will set the field separator to be the “tab” character.
+
+### What are some special awk variables I should know about?
+
+When awk runs, many variables are set beyond the column variables $1, $2 etc.
+ - $0 is the original line.
+ - NF number of fields in the current line (number of columns that awk recognizes)
+ - NR number of records, the number of lines processed (line number)
+ - OFS output fields separator, the character placed between items when printed
+
+As an example usage:
+```
+cat SGD_features.tab | awk '{ print NR, NF }' | head
+```
+This prints:
+```
+1 30
+2 9
+3 40
+4 9
+5 14
+6 40
+...
+```
+The first number is the line number; the second number is how many columns does awk think that the file has. Look what happens if you split by tab characters:
+```
+cat SGD_features.tab | awk -F '\t' '{ print NR, NF }' | head
+```
+you will get:
+```
+1 16
+2 16
+3 16
+4 16
+5 16
+6 16
+...
+```
+
+Make sure to use double quotes within patterns as to not conflict with the single quotes that the whole awk program is enclosed within.
+
+Do not use **--color=always** when saving data in a new file for other downstream processing. When you use coloring, additional color-related data is added to the file, and that will affect downstream processing.
+
+**grep** and **extended** grepegrep are tools that operate on one line at a time and can be used to identify lines with patterns. When sequences wrap over many lines we need dedicated tools like dreg1 or fuzznuc2 (Emboss Tools).
+
+This will miss patterns that wrap around new lines.
+```
+cat KU182908.fa | grep AAAAAA
+```
+The dreg tool matches and reports the locations.
+```
+cat KU182908.fa | dreg -filter -pattern AAAAAA
+```
+Search a pattern with ambiguous N bases.
+```
+cat KU182908.fa | fuzznuc -filter -pattern 'AANAA
+```
+
+### Example regular expression searches:
+Get a FASTQ dataset.
+```
+fastq-dump --split-files SRR519926
+```
+Find an ATG anchored at the start of the line
+```
+cat SRR519926_1.fastq | egrep "^ATG" --color=always | head
+```
+Find an ATG anchored at the end of the line
+```
+cat SRR519926_1.fastq | egrep "ATG\$" --color=always | head
+```
+Find TAATA or TATTA patterns, this is a range of characters
+```
+cat SRR519926_1.fastq | egrep "TA[A,T]TA" --color=always | head
+```
+Find TAAATA or TACCTA, these are groups of words
+```
+cat SRR519926_1.fastq | egrep "TA(AA|CC)TA" --color=always | head
+```
+Find TA followed by zero or or more A followed by TA
+```
+cat SRR519926_1.fastq | egrep "TA(A*)TA" --color=always | head
+```
+Find TA followed by one or or more A followed by TA
+```
+cat SRR519926_1.fastq | egrep "TA(A+)TA" --color=always | head
+```
+Find TA followed by two to five As followed by TA
+```
+cat SRR519926_1.fastq | egrep "TAA{2,5}TA" --color=always | head
+```
+Match Ilumina adaptors at the end of the reads
+Match AGATCGG anywhere followed by any number of bases
+```
+cat SRR519926_1.fastq | egrep "AGATCGG.*" --color=always | head
+```
+
+When the sequences are very similar (nearly identical) the choice of scoring or even algorithms may not matter at all. The results will be robust - producing identical alignments across different algorithms and parameter settings.
+
+When the sequences are dissimilar the choice of algorithm and scoring will typically have radical impacts on the results. In general, the more different the sequences, the more sensitive the alignment becomes to parameter choices.
+
+The **CIGAR** string (Compact Idiosyncratic Gapped Alignment Report) is an alignment format used within the Sequence Alignment Map (SAM) files that form the backbone of most bioinformatics high-throughput analyses. For the same alignment from above:
+```
+ATGCAAATGACAAATAC
+||||   |||.||.|
+ATGC---TGATAACT--
+```
+the reported CIGAR format would be:
+```
+4M3D3M1X2M1X1M2D
+```
+We read out this “idiosyncratic” construct like so `4M + 3D + 3M + 1X + 2M + 1X + 1M + 2D`:
+ - 4 matches followed by
+ - 3 deletions,
+ - 3 matches,
+ - 1 mismatch,
+ - 2 matches,
+ - 1 mismatch,
+ - 1 match,
+ - 2 deletions.
+
+The format above is in a so-called “Extended CIGAR,” meaning that it employs the X symbol for mismatches.
+
+## Short read aligners
+
+How are short reads different from long reads? Modern sequencing instruments brought about two significant changes:
+ 1. The read lengths became very short (50-300bp)
+ 2. The number of reads grew extremely high (hundreds of millions)
+
+The rationale behind the new paradigm was to treat sequencing reads as small, independent measurements to be subsequently matched either against a known genome (called resequencing) or against one another (called assembly)
+
+### How do short read aligners work?
+First, let us make something abundantly clear: short read aligners are marvels of modern scientific software engineering. A well-optimized short read aligner can match over ten thousand sequences per second (!) against the 3 billion bases of the human genome. Their performance, implementation, and level of execution is nothing short of astounding.
+But there is another side to the story. The rational expectation is that the published aligners would produce reasonably similar alignments and that the difference between various implementation would manifest primarily in their performance, hardware requirements, and small fluctuations in accuracy and precision.
+
+In reality, the results that two aligners produce can be substantially different
+
+While there is no shortage of scientific publications that claim to compare the accuracy and performance of various tools, most of these papers fail to capture the essential differences between the methods.
+
+The minimum length for the read is algorithm- and implementation-dependent; it is rarely (if ever) mentioned in the documentation. Many tools stop working correctly when the read lengths drop under 30 bases. When studying small RNAs, for example, microRNAs, we have to look for tools that can align very short reads; the selection is surprisingly sparse.
+
+The purpose of a mapper tool is locating a region in a genome, not producing an optimal alignment to that region.
+
+Mapping
+ - A mapping is a region where a read sequence is placed.
+ - A mapping is regarded to be correct if it overlaps the true region.
+
+Alignment
+ - An alignment is the detailed placement of each base in a read.
+ - An alignment is regarded to be correct if each base is placed correctly.
+
+It is essential, however, to remember that the distinction between mapping and alignment does exist, and to recognize further that different studies have different requirements in regards to the use of these concepts.
+
+For example, studies examining SNPs and variations in a genome would be primarily alignment-oriented. By contrast, studies using ChIP-Seq data would be essentially mapping-oriented.
+
+So how do we pick the best aligner? There are good starting choices, such as bwa and bowtie2, that will perform well in all domains of application.
+
+There is also a cultural and historical element to it. Scientists at the Broad Institute will likely use bwa because it was developed there.
+
+In general, all short read aligners operate on the same principles:
+ 1. First build an “index” from a reference genome (this only needs to be done once).
+ 2. The reads in FASTA/FASTQ files are then aligned against the index created in step
+
+Index building consists of pre-processing the reference genome so that the program can search it efficiently. Each program will build a different type of index; sometimes it may produce multiple files with odd-looking names or extensions. For this reason, it is best to place the reference genome in separate directories.
+
+A SAM file encompasses all known information about the sample and its alignment; typically, we never look at the FastQ file again, since the SAM format contains all (well almost all) information that was also present in the FastQ measurements.
+
+The first version of **bowtie aligner** was the first implementation of the Burrows-Wheeler algorithm for short read alignment, and with that it has opened a new era in processing high-throughput data.
+
+The latest version of the algorithm bowtie2, is almost always preferred. In this book when we talk about the bowtie program we mean bowtie version 2.
+
+The **SAM format** is a TAB-delimited, line-oriented text format consisting of a
+ 1. Header section, where each line contains some metadata
+ 2. Alignment section where each line provides information on an alignment
+
+A **BAM file** is a binary, compressed (and almost always sorted) representation of the SAM information. Generally, BAM files are sorted, usually by the alignment coordinate and more rarely by the read names.
+ - Sorting by coordinate allows fast query on the information by location.
+ - Sorting by read name is required when the identically named read pairs need to be accessed quickly as read pairs will then be stored in adjacent lines.
+
+**CRAM files** are conceptually similar to BAM files. CRAM files represent a more efficient version of the information in BAM files, where the gain is made by storing the reference separately. The essential difference between BAM and CRAM format is that a CRAM file can only be read if the reference sequence is present at a given location on the target computer. In contrast, the information in the BAM file is complete.
+
+The downside of this approach is that losing the reference sequence means losing the data (that is, being unable to decode it).
+
+Even practicing bioinformaticians frequently have misconceptions about SAM files. Among them, the most prevalent is the assumption that BAM files produced by different tools will have a comparable amount of information and the differences are mostly in the accuracy or performance characteristics of the alignments.
+
+The **FLAG is the field of the SAM spec** where the designers of the format have strayed the furthest from what one might call common sense. It was a way to “cram” (no pun intended) as much information as possible into a single number. To do so, they came up with a contorted rationalization that no biologist will ever manage to remember, hence ensuring the longterm employment of bioinformaticians across the globe. Perhaps that was the plan all along, in which case I must admit, the FLAG is not such a bad thing after all.
+
+**Column 5-6: Mapping Quality (MAPQ) and Compact Idiosyncratic Gapped Alignment Representation (CIGAR)**
+
+These columns reflect the Mapping Quality (MAPQ) and the so-called Compact Idiosyncratic Gapped Alignment Representation (CIGAR).
+```
+samtools view SRR1972739.bwa.bam | cut -f 5,6 | head -5
+```
+to produce:
+```
+60 101M
+60 101M
+60 101M
+60 101M
+60 101M
+```
+The values in the MAPQ column here are all 60. This column was designed to indicate the likelihood of the alignment being placed incorrectly. It is the same Phred score that we encountered in the FASTQ files. And we read it the same way, 60/10 = 6 so the chance of seeing this alignment being wrong is 10ˆ-6 or 1/1,000,000 one in a million.
+
+The CIGAR string is a different beast altogether. It is meant to represent the alignment via numbers followed by letters:
+ - M match of mismatch
+ - I insertion
+ - D deletion
+ - S soft clip
+ - H hard clip
+ - N skipping
+
+These are also meant to be “readable”; the 18S83M says that 18 bases soft clipped and the next 83 are a match or mismatch.
