@@ -556,3 +556,140 @@ The CIGAR string is a different beast altogether. It is meant to represent the a
  - N skipping
 
 These are also meant to be “readable”; the 18S83M says that 18 bases soft clipped and the next 83 are a match or mismatch.
+
+First, let’s clarify some wording:
+ 1. Selecting means to keep alignments that match a condition.
+ 2. Filtering means to remove alignments that match a condition.
+
+### How can I find out the depth of coverage?
+There are several tools that can compute the number of reads that overlap each base. With
+samtools you can do:
+
+Compute the depth of coverage.
+```
+samtools depth SRR1972739.bwa.bam | head
+```
+This produces a file with name, coordinate and coverage on that coordinate:
+```
+AF086833 46 1
+AF086833 47 1
+AF086833 48 1
+...
+```
+Run bamtools coverage:
+```
+bamtools coverage -in SRR1972739.bwa.bam | head
+```
+The output seems identical
+```
+AF086833 45 1
+AF086833 46 1
+AF086833 47 1
+...
+```
+Except note how it is “one off”! The index starts at 0 rather than 1 in the latter case. These type of inconsistencies are extraordinarily common in bioinformatics and are the source of endless errors. You could ask for all positions to be shown with samtools and you can verify that it starts at 1
+```
+samtools depth -a SRR1972739.bwa.bam | head
+```
+it produces:
+```
+AF086833 1 0
+AF086833 2 0
+AF086833 3 0
+```
+
+Multiple mappings are caused primarily by repeats. They are less frequent given longer reads. If a read has multiple mappings, and all these mappings are almost entirely overlapping with each other; except the single-best optimal mapping, all the other mappings get mapping quality <Q3 and are ignored by most SNP/INDEL callers.
+
+**Genomic variations** are typically categorized into different classes and are often denoted with a shortened acronym:
+ - SNP, a single nucleotide polymorphism - A change of a single base.
+ - INDEL, an insertion or a deletion - A single base added or removed.
+ - SNV, a single nucleotide variant. A SNPs or an INDEL. The change is still single basepair long.
+ - MNP, a multi-nucleotide polymorphism - Several consecutive SNPs in a block.
+ - MNV, a multi-nucleotide variant - Multiples SNPs and INDELs as a block.
+ - Short variations. Variations (MNVs) that are typically less than 50bp in length.
+ - Large-scale variations. Variations that are larger 50bp.
+ - Structural variants. Variations on the kilobase scale that involve (one or more) chromosomes.
+
+SNPs are in a sense the holy grail of genomics. Their “popularity” perhaps is a manifestation of our hopes and wishful thinking. After all wouldn’t it be great if every disease or human condition could be distilled down to a few changes and mutations in the genome? We would need to find that one SNP, and with that, we solve the problem, collect our reward and move onto the next challenge.
+
+And sometimes (rarely though) things do work out this way. Some individual mutations do indeed cause disease(s). The OMIM database (Online Mendelian Inheritance in Man) is an online catalog of human genes and genetic disorders collect this data.
+
+In the context of genomic variations, the genotyping typically refers to identifying one, more than one, or all mutations of the sequence under investigation.
+
+Specifically, the word “genotyping” seems to be used very liberally in publications and training materials. Most of the time, when reading these it is not clear what the authors mean when they state that they have “genotype” data. What they probably and usually mean is that they have established with some confidence that a variant is present.
+
+A haplotype is a group of genes in an organism that is inherited together from a single parent.
+
+In the context of genomic variations, a haplotype is a group of mutations that are inherited together. But just as with the “genotyping,” the word “haplotyping” may be used in a broader and narrower sense.
+
+There are simulators available for the whole genome, exome, RNA-seq and chip-seq data simulation. Some tools run from command line; others have graphical user interfaces.
+ - wgsim/dwgsim simulates obtaining sequencing reads from whole genomes.
+ - msbar EMBOSS tool can simulate mutations in a single sequence.
+ - biosed EMBOSS tool provides control on what mutations we introduce.
+ - ReadSim is a sequencing read simulator to target long reads such as PacBio or Nanopore.
+ - Art is the most sophisticated and up to date simulator that attempts to mimic the errors that sequencing instruments produce.
+ - Metasim simulates reads from metagenomes (from a diverse taxonomical composition present in different abundances).
+ - Polyester an RNA-Seq1 measurement simulator
+
+It is also very likely that the human reference genome is not even a viable - meaning that if the sequence were “implanted” into a human cell, it would not function. Now, knowing that, think about the repercussions of this for a second. Scientists are using a non-existing, potentially non-viable human reference to characterize all other “real” human genomes
+
+**Variant calling** is the process of identifying and cataloging the differences between the observed sequencing reads and a reference genome.
+
+The **ploidy** is the number of complete sets of chromosomes in a cell and hence represent the number of possible alleles (variant forms) of the DNA of a single cell.
+
+A **haplotype** (haploid genotype) is a group of alleles in an organism that are (or may be) inherited together from a single parent. Variants that occur on the same DNA molecule form a haplotype.
+
+Typically a **VCF file** is a result of running a “variant caller” (or “SNP caller” as some people call it) on one or more BAM alignment files. The result of running the variant caller will be a VCF file that contains a column for each sample. Samples may be stored in different BAM files or may a single BAM file may include multiple samples tagged via read-groups.
+
+The **BCF format** is a binary representation of the VCF format. It has a similar relationship as the SAM/BAM but with the exception that the BCF files are not sorted and indexed and cannot be queried the same way as typical BAM files do.
+
+**Variant annotation** means predicting the effects of genetic variants (SNPs, insertions, deletions, copy number variations (CNV) or structural variations (SV)) on the function of genes, transcripts, and protein sequence, as well as regulatory regions.
+
+**Gene isoforms** are mRNAs that are produced from the same locus but are different in their transcription start sites (TSSs), protein-coding DNA sequences (CDSs) and untranslated regions (UTRs), potentially altering gene function.
+
+The sequencing coverage drops towards the ends of DNA molecules due to the lower chances of producing fragments that include the end of the molecule.
+
+### What is the RPKM?
+If we wanted to compare the number of reads mapped to one given transcript to another transcript of the same sample, we have to account for the fact that longer transcripts will produce more DNA fragments merely because they are longer.
+
+FPKM is an extension of the already flawed concept of RPKM to paired-end reads. Whereas RPKM refers to reads, FPKM computes the same values over read pair fragments. Conceptually is even worse as the word “fragment” only adds another level of ambiguity to an already questionable concept
+
+Trimmed mean of M values (TMM) normalization estimates sequencing depth after excluding genes for which the ratio of counts between a pair of experiments is too extreme or for which the average expression is too extreme. The edgeR software implements a TMM normalization.
+
+The DESeq normalization method (implemented in the DEseq R package) estimates sequencing depth based on the count of the gene with the median count ratio across all genes.
+
+## Introduction to ChIP-Seq analysis
+ChIP-Seq stands for chromatin immunoprecipitation followed by sequencing. In a nutshell, the process consists of a laboratory protocol (abbreviated as ChIP) by the end of which the full DNA content of a cell is reduced to a much smaller subset of it. This subset of DNA is then sequenced (abbreviated as Seq) and is mapped against a known reference genome.
+
+You will see how ChIP-Seq analysis is all about peaks - a term, that in our opinion is adopted widely yet lacks any exact definition.
+
+The DNA fragments coming from a ChIP-Seq study are much shorter than a transcriptstudied in RNA-Seq analysis. Instead of counting measurements distributed over transcripts a single read may cover most of the fragment (or may even be longer than the original DNA fragment).
+
+As a matter of fact, for ChIP seq results we need to compare to control (baseline) to verify that the protocol worked at all. Whereas in RNA-Seq we can immediately see the success of it by having reads cover transcript, in ChIP-Seq study no such certainty exists. Also when comparing peaks across conditions each peak has to first pass the comparison to a background, and then only those peaks that pass the first stage are compared to one another in a second stage.
+
+Chromatin immunoprecipitation (ChIP) followed by high-throughput DNA sequencing (ChIP-seq) is a technique to map genome-wide transcription factor binding sites and histone-modification enriched regions.
+
+Briefly, DNA bounding proteins and DNA (Chromatin) are cross-linked by formaldehyde and the chromatin is sheared by sonication into small fragments (typically 200 ~ 600 bp). The protein-DNA complex is immnuoprecipitated by an antibody specific to the protein of interest. Then the DNA is purified and made to a library for sequencing. After aligning the sequencing reads to a reference genome, the genomic regions with many reads enriched are where the protein of interest bounds. ChIP-seq is a critical method for dissecting the regulatory mechanisms of gene expression.
+
+**HOMER** is a very nice tool for finding enriched peaks, doing motif analysis and many more. It requires making a tag directory first. ROSE22 is the tool from Richard Young’s lab.
+
+For ChIP-seq, it is important to filter artifact regions that has abnomral high signals. From the website of Anshul Kundaje in Stanford University:
+
+These regions are often found at specific types of repeats such as centromeres, telomeres and satellite repeats. It is especially important to remove these regions that computing measures of similarity such as Pearson correlation between genome-wide tracks that are especially affected by outliers.
+
+## Introduction to metagenomics
+Metagenomics is the study of genetic material recovered directly from environmental samples. The broad field may also be referred to as environmental genomics, ecogenomics or community genomic
+
+From a bioinformatician’s point of view, metagenomics is the application of high-throughput genomic techniques to the study of communities of microbial organisms.
+
+Traditionally genetics has focused on **vertical transfer** of genetic material: from parent to offspring. There is another mechanism of evolution, the so called **horizontal gene transfer** that allows some types of organisms to share genetic material across different species. Among single-celled organisms, it is perhaps the dominant form of genetic transfer.
+
+Important: It is essential to recognize from the very beginning that most microorganisms cannot exist independently and their survival requires the presence of diverse communities of other microbes. Thus we need to keep in mind that organisms need to be treated in the context of their communities rather than individual species.
+
+Current practices in metagenomics fall into the categories of:
+ 1. 16S rRNA sequencing
+ 2. Whole-metagenome sequencing
+
+In a nutshell the 16S gene forms a peculiar part of a genome that has both very highly conserved regions (identical across just about all bacteria) as well as highly variable regions (hypervariable) that may be specific to a taxonomical level such as genus or species. You can use the conserved regions to isolate the variable regions that may be used to identify the bacteria. Since only a tiny section of the entire bacteria is genome will be sequenced, the 16S method is very “economical” requires a fraction of the coverage and produces far lower quantities of data.
+
+Whereas during 16S sequencing each read corresponds to a bacterial cell, in the case of whole genome sequencing the length of the genome also matters. Longer bacteria will produce more DNA and will be seen in more sequencing reads. Another way to say this is that ten read counts of one bacteria vs. one read count of another bacteria does not mean that there were more of the first than the second.
