@@ -30,7 +30,7 @@ It might be worth considering automatic thresholding via **MAD (median absolute 
 $$MAD = median(X_i - median(X))$$
 with $X_i$ being the respective QC metric of an observation and describes a robust statistic of the variability of the metric. we mark cells as outliers if they differ by 5 MADs which is a relatively permissive filtering strategy.
 
-```
+```python
 def is_outlier(adata, metric: str, nmads: int):
     M = adata.obs[metric]
     outlier = (M < np.median(M) - nmads * median_abs_deviation(M)) | (
@@ -77,13 +77,13 @@ Xiang et al. compared in an independent comparison the stability, accuracy and c
 
 In scRNA-seq data analysis, we describe cellular structure in our dataset with finding cell identities that relate to known cell states or cell cycle stages. This process is usually called cell identity annotation. For this purpose, we structure cells into clusters to infer the identity of similar cells. The Leiden algorithm is as an improved version of the Louvain algorithm which outperformed other clustering methods for single-cell RNA-seq data analysis. The Leiden module has a resolution parameter which allows to determine the scale of the partition cluster and therefore the coarseness of the clustering. A higher resolution parameter leads to more clusters.
 
-```
+```python
 sc.tl.leiden(adata, key_added="leiden_res0_25", resolution=0.25)
 sc.tl.leiden(adata, key_added="leiden_res0_5", resolution=0.5)
 sc.tl.leiden(adata, key_added="leiden_res1", resolution=1.0)
 ```
 
-```
+```python
 sc.pl.umap(
     adata,
     color=["leiden_res0_25", "leiden_res0_5", "leiden_res1"],
@@ -97,7 +97,33 @@ sc.pl.umap(
 ## Inferring trajectories
 
 ### 13. Pseudotemporal ordering
+
+Pseudotimes rank cells relative to each other according to their respective stage in the developmental process. Less mature cells are assigned small, mature cells large values.
+
+Probabilistic frameworks assign transition probabilities to ordered cell-cell pairs. Each transition probability quantifies how likely the reference cell is the ancestor of the other cell.
+
 ### 14. RNA velocity
+
+Single-cell measurements are snapshot data and can, thus, not be plotted against time. Instead, classical RNA velocity methods rely on studying the cell-specific tuples (u, s) of unspliced and spliced RNA for each gene. The collection of these tuples form the so-called phase portrait. Assuming constant rates of transcription, splicing, and degradation, the phase portraits exhibits an almond shape. The upper arc corresponds to the induction, the lower arc the repression phase. However, as real-world data is noisy, plotting the unspliced against spliced counts does not recover the expected almond shape. Instead, the data needs to be smoothed first. Classically, this preprocessing step consists in averaging the gene expression of each cell over its neighbors in a cell-cell similarity graph.
+
+The first attempt at estimating RNA velocity assumed gene independence and the underlying kinetics to be governed by the above model. Additionally, it is assumed that (1) kinetics reached their equilibrium, (2) rates are constant, and (3) there is a single, common splicing rate across all genes. In the following, we will refer to this model as the **steady-state model** due to the first assumption. The steady-states itself are found in the upper right corner of the phase portrait (induction phase) and its origin (repression phase). Based on these extreme quantiles, the steady-state model estimates the steady-state ratio with a linear regression fit. RNA velocity is then defined as the residual to this fit.
+
+Even though the steady-state model can successfully recover the developmental direction in some systems, it is inherently limited by its model assumptions. The two assumptions readily violated are the common splicing rate across genes and that the equilibria are observed during the experiment.
+
+To overcome the limitations of the steady-state model, several extensions have been proposed. The so-far most popular one is the **EM model** implemented in scVelo. The EM model no longer assumes that steady-states have been reached or that genes share a common splicing rate. Additionally, all datapoints are used to infer the full set of parameters as well as a gene and cell specific latent time of the splicing model. The algorithm uses an expectation-maximization (EM) framework to estimate parameters. The unobserved variables found in the E-step consist of each cell’s time and state (induction, repression, or steady-state). All other model parameters are inferred during the M-step.
+
+While the EM model no longer relies on key assumptions of the steady-state model and, thus, is more broadly applicable, the inferred RNA velocity may still violate prior biological knowledge. The reason for such failure cases are mainly two-fold: On the one hand, the EM model continues to assume constant rates. Consequently, whenever these assumption does not hold, for example in erythroid maturation, the inference is incorrect.
+
+Stady-state model. 
+```python
+scv.tl.velocity(adata, mode="deterministic")
+```
+EM model. In order to calculate RNA velocity with the EM model, the parameters of splicing kinetics need to be inferred first. The inference is taken care of by scVelo’s recover_dynamics function.
+```python
+scv.tl.recover_dynamics(adata, n_jobs=8)
+scv.tl.velocity(adata, mode="dynamical")
+```
+
 ### 15. Lineage tracing
 
 ## Dealing with conditions
