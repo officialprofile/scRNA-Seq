@@ -126,6 +126,16 @@ scv.tl.velocity(adata, mode="dynamical")
 
 ### 15. Lineage tracing
 
+- Prospective lineage tracing approaches enable investigators to trace the descendants of a single cell (i.e., a “clone” or “clonal population”). Typically, this is done by introducing a heritable marker into a cell (termed a “clonal progenitor”) that is passed on from generation to generation.
+- Retrospective lineage tracing approaches use variability observed in cells - such as naturally occurring genetic mutations - to infer a model of their lineage (or “phylogeny”) summarizing the cell division history in a clonal population.
+
+**Important Definitions**
+- **clonal population (or, clone)**: The full set of descendants of a specific cell progenitor.
+- **clonal progenitor**: The original single-cell giving rise to a clonal population.
+- **subclonal resolution**: Insights into the relationships between subsets of cells within a clonal population.
+- **phylogeny**: A model of the cell division history of a clonal population, represented as a tree.
+- **scratchpad (or, target site)**: A synthetic, exogeneous region capable of accumulating targeted variation in evolving lineage tracing technologies.
+
 ## Dealing with conditions
 
 ### 16. Differential gene expression analysis
